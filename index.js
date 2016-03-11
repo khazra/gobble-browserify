@@ -30,61 +30,6 @@ function concat ( stream, callback ) {
 	});
 }
 
-function cacheDependency ( cache, originalDep, inputdir ) {
-	var dep = {};
-	Object.keys( originalDep ).forEach( function ( key ) {
-		dep[ key ] = originalDep[ key ];
-	});
-
-	dep.basedir && ( dep.basedir = dep.basedir.replace( inputdir, '@' ) );
-	dep.id = dep.id.replace( inputdir, '@' );
-	dep.file = dep.file.replace( inputdir, '@' );
-
-	if ( dep.deps ) {
-		Object.keys( dep.deps ).forEach( function ( key ) {
-			dep.deps[ key ] = dep.deps[ key ].replace( inputdir, '@' );
-		});
-	}
-
-	cache[ dep.id ] = dep;
-}
-
-var leadingAt = /^@/;
-
-function generateCacheObject ( previous, inputdir, changes ) {
-	var invalid = {}, cache = {};
-
-	changes.forEach( function ( change ) {
-		if ( change.changed || change.removed ) {
-			invalid[ '@' + change.file ] = invalid[ './' + change.file ] = true;
-		}
-	});
-
-	Object.keys( previous ).forEach( function ( id ) {
-		if ( invalid[ id ] ) return;
-
-		var dep = previous[ id ];
-
-		dep.basedir && ( dep.basedir = dep.basedir.replace( leadingAt, inputdir ) );
-		dep.file = dep.file.replace( leadingAt, inputdir );
-
-		if ( dep.deps ) {
-			Object.keys( dep.deps ).forEach( function ( key ) {
-				dep.deps[ key ] = dep.deps[ key ].replace( leadingAt, inputdir );
-			});
-		}
-
-		if ( id[0] === '@' ) {
-			id = inputdir + id.slice( 1 );
-			dep.id = id;
-		}
-
-		cache[ id ] = dep;
-	});
-
-	return cache;
-}
-
 module.exports = function browserify ( inputdir, outputdir, options, callback ) {
 	if ( !options.dest ) {
 		throw new Error( 'You must specify a `dest` property' );
@@ -94,36 +39,14 @@ module.exports = function browserify ( inputdir, outputdir, options, callback ) 
 		throw new Error( 'You must specify one or more entry points as `options.entries`' );
 	}
 
-	// TODO should have a proper, documented way of doing this... e.g. `this.state`.
-	// Ditto for this.node.cache
-	if ( !this.node.packageCache ) {
-		this.node.packageCache = {};
-	}
-
 	options.basedir = inputdir;
 	var debug = options.debug = options.debug !== false; // sourcemaps by default
-	options.cache = this.node.cache = generateCacheObject( this.node.cache || {}, inputdir, this.changes );
-	options.packageCache = this.node.packageCache;
+	options.cache = this.node.cache || {};
+	options.packageCache = this.node.packageCache || {};
 	options.fullPaths = true;
 
 	var b = _browserify( options );
-	var cache = options.cache;
 
-	b.on( 'dep', function ( dep ) {
-		cacheDependency( cache, dep, inputdir );
-	});
-
-	// TODO watch dependencies outside inputdir, using a future
-	// gobble API - https://github.com/gobblejs/gobble/issues/26
-
-	// make it possible to expose particular files, without the nutty API.
-	// Example:
-	//     gobble( 'browserify', {
-	//       entries: [ './app' ],
-	//       dest: 'app.js',
-	//       standalone: 'app',
-	//       expose: { ractive: 'ractive/ractive-legacy.js' }  // <-- use ractive-legacy instead of modern build
-	//     })
 	if ( options.expose ) {
 		Object.keys( options.expose ).forEach( function ( moduleName ) {
 			b.require( options.expose[ moduleName ], { expose: moduleName });

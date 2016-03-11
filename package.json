@@ -1,10 +1,10 @@
 {
-  "name": "gobble-browserify",
-  "version": "0.6.1",
-  "description": "Bundle CommonJS modules with gobble and Browserify",
+  "name": "gobble-khazra-browserify",
+  "version": "0.6.2",
+  "description": "Bundle CommonJS modules with gobble and Browserify | removed flawed dependency caching",
   "author": "Rich Harris",
   "license": "MIT",
-  "repository": "https://github.com/gobblejs/gobble-browserify",
+  "repository": "https://github.com/khazra/gobble-browserify",
   "dependencies": {
     "browserify": "^10.1.0"
   },
